@@ -172,9 +172,12 @@ Seven Cursor lifecycle events are wired in `.cursor/hooks.json` to
 ### Hook script layout
 
 All hooks live under `.cursor/hooks/scripts/*.py` (the only set wired in
-`hooks.json`), delegating to shared logic in `.cursor/hooks/lib/*.py`
-(`_common`, `context_injection`, `emit_client`, `pattern_loader`,
-`prompt_pattern_selection`, `pattern_sync`) and, where needed, to `src/omnicursor/`.
+`hooks.json`), delegating to shared logic in `.cursor/hooks/lib/*.py` and, where
+needed, to `src/omnicursor/`. The lib holds **10** modules: `_common`,
+`context_injection`, `emit_client`, `pattern_loader`, `prompt_pattern_selection`,
+`pattern_sync`, the `agent_scoring` shim (re-exports `src/omnicursor/scoring.py`),
+plus `canonical_event` (event envelope shaping), `daemon_ensure` (best-effort
+emit-daemon ensure used by `sessionStart`), and `redaction` (secret scrubbing).
 The previous parallel top-level `on_*.py` set was deleted in the W4 hook alignment —
 `scripts/*.py` is the single source.
 
@@ -375,6 +378,9 @@ All networked tiers are **opt-in**; the plugin works fully offline.
 ---
 
 ## 11. Local state (`~/.omnicursor/`)
+
+> Privacy-oriented view of the same directory (what stays vs. what can leave your
+> machine): [README → Privacy](../README.md#privacy).
 
 | Path | Purpose |
 |------|---------|
