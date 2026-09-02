@@ -93,6 +93,22 @@ class TestRedactSecrets:
                 "supersecret123",
                 "password=***REDACTED***",
             ),
+            (
+                # OMN-16277: secret-bearing key NAMES with no word boundary
+                # before the label root (JSON keys such as clientSecret). The
+                # generic key=value pattern cannot pre-empt this one: "t" and
+                # "S" in clientSecret are both word characters, so its \b
+                # never matches.
+                '{"clientSecret": "abcDEF123456789"}',
+                "abcDEF123456789",
+                '"clientSecret": ***REDACTED***',
+            ),
+            (
+                # OMN-15062: prose-form credential mention (10+ char token).
+                "the password is hunter2hunter2hunter2",
+                "hunter2hunter2hunter2",
+                "the password is ***REDACTED***",
+            ),
         ],
     )
     def test_known_patterns_redact(
@@ -109,6 +125,22 @@ class TestRedactSecrets:
     def test_short_password_value_not_redacted(self) -> None:
         # Donor false-positive guard: values under 8 chars stay.
         assert _mod.redact_secrets("password=true") == "password=true"
+
+    def test_url_credentials_redact_only_userinfo(self) -> None:
+        # Bounded authority regex (OMN-15462/OMN-16277): only the password
+        # goes; scheme, user, host and path survive byte-for-byte.
+        assert (
+            _mod.redact_secrets("https://user:pass1234@host/path")
+            == "https://user:***REDACTED***@host/path"
+        )
+
+    def test_bounded_url_pattern_does_not_span_lines(self) -> None:
+        # Regression bound: the previous unbounded classes ([^:]+ / [^@]+)
+        # matched "any later colon, any later @" across newlines and turned
+        # this into "...docs\nnote:***REDACTED***@alice". Prompts are
+        # multi-line, so the A5 path hit this for real.
+        text = "see https://example.com/docs\nnote: ping @alice"
+        assert _mod.redact_secrets(text) == text
 
 
 class TestSanitizePreview:

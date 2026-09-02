@@ -42,8 +42,9 @@ stdlib-only). Emergency bypass only: `git commit --no-verify`.
 
 CI (`.github/workflows/ci.yml`) runs the same on Python 3.12 with `.[dev,mcp]`, plus
 mypy, bandit, detect-secrets (baseline compare), offline link check, MCP wiring,
-shellcheck, and a sibling-drift job that checks out `omnimarket`/`omnibase_core` at
-governed pin SHAs (the weekly scheduled run probes the moving `dev` heads instead).
+shellcheck, and a sibling-drift job that checks out
+`omnimarket`/`omnibase_core`/`omniclaude` at governed pin SHAs (the weekly scheduled
+run probes the moving `dev` heads instead).
 Triggers: PRs to `main`, pushes to `main`, `workflow_dispatch`, weekly schedule. Fork PRs
 need a maintainer's "Approve and run" (see the trigger comment in `ci.yml`). Branch
 protection should require the aggregate `ci-summary` job — as of 2026-07-26 `main` has

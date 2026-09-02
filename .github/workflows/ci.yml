@@ -18,10 +18,10 @@ on:
     branches: [main]
   workflow_dispatch:
   # Weekly moving-head probe: sibling-drift tracks the LIVE omnimarket /
-  # omnibase_core dev heads only on this schedule, where a failure can't
-  # block an unrelated PR. PR/push runs use the pinned refs below so a
-  # required check never changes result while the PR's SHA is unchanged
-  # (PR #10 review, point 2).
+  # omnibase_core / omniclaude dev heads only on this schedule, where a
+  # failure can't block an unrelated PR. PR/push runs use the pinned refs
+  # below so a required check never changes result while the PR's SHA is
+  # unchanged (PR #10 review, point 2).
   schedule:
     - cron: "17 9 * * 1"
 
@@ -225,9 +225,10 @@ jobs:
 
   # Drift-catchers vs the platform (Jonah's stated intent for mirroring
   # omniclaude CI: "reduce manual work and catch drift"). Checks out the
-  # public sibling repos so the canonical-event round-trip and the real
-  # EventRegistry load — tests that silently skip when siblings are absent —
-  # actually run. Tokenless (both repos are public), so fork-safe.
+  # public sibling repos so the canonical-event round-trip, the real
+  # EventRegistry load and the redaction-table byte-parity check — tests
+  # that silently skip when siblings are absent — actually run. Tokenless
+  # (all three repos are public), so fork-safe.
   sibling-drift:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -237,6 +238,11 @@ jobs:
       # Refresh deliberately with a chore commit when adopting new heads.
       OMNIMARKET_PIN: 9067a97f29e4e53b010892b48b265fa73127c36e
       OMNIBASE_CORE_PIN: 665b9657f2d310cec647fdc5e0093ae28835bbab
+      # omniclaude is the redaction-pattern donor (tests/test_redaction.py
+      # TestByteParity). A red weekly run here means the donor moved: re-port
+      # the _SECRET_PATTERNS block into .cursor/hooks/lib/redaction.py, then
+      # bump this pin.
+      OMNICLAUDE_PIN: 00589f12c8b66447f7da23fff0b72dacd6f3446d
 
     steps:
       - uses: actions/checkout@v4
@@ -258,6 +264,13 @@ jobs:
           ref: ${{ github.event_name == 'schedule' && 'dev' || env.OMNIBASE_CORE_PIN }}
           path: omnibase_core
 
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          repository: OmniNode-ai/omniclaude
+          ref: ${{ github.event_name == 'schedule' && 'dev' || env.OMNICLAUDE_PIN }}
+          path: omniclaude
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -268,12 +281,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Registry + canonical-event drift tests (siblings present)
+      - name: Registry + canonical-event + redaction drift tests (siblings present)
         working-directory: omnicursor
         run: |
-          pytest tests/test_event_registry_tier.py tests/test_canonical_event.py -v -rs | tee drift-output.txt
+          pytest tests/test_event_registry_tier.py tests/test_canonical_event.py tests/test_redaction.py -v -rs | tee drift-output.txt
           # The sibling-dependent tests skip when checkouts are missing; with
-          # both siblings checked out, a skip means the wiring broke.
+          # all three siblings checked out, a skip means the wiring broke.
           if grep -q "SKIPPED" drift-output.txt; then
             echo "::error::sibling-dependent drift tests were skipped despite the checkouts"
             exit 1

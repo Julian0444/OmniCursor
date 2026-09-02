@@ -132,10 +132,11 @@ plugin, but they shape any work in these areas.
   hook stdlib-only imports, shellcheck), `security` (bandit; detect-secrets
   vs the audited `.secrets.baseline`), `links` (offline lychee over
   README/CHANGELOG/docs), `sibling-drift` (checks out
-  `omnimarket`/`omnibase_core` at **governed pin SHAs** on PR/push runs —
-  deterministic for a given PR SHA — while the weekly scheduled run probes
-  the moving `dev` heads non-blockingly), and the `ci-summary` aggregate for
-  branch protection.
+  `omnimarket`/`omnibase_core`/`omniclaude` — the redaction-pattern donor, so
+  `tests/test_redaction.py::TestByteParity` runs under the skip-fails guard — at
+  **governed pin SHAs** on PR/push runs — deterministic for a given PR SHA — while
+  the weekly scheduled run probes the moving `dev` heads non-blockingly), and the
+  `ci-summary` aggregate for branch protection.
 - **Pre-commit** (`.githooks/pre-commit`, enable with
   `git config core.hooksPath .githooks`): mirrors the fast local subset —
   ruff check + format, pytest, skill coverage, and the four `scripts/ci/`
