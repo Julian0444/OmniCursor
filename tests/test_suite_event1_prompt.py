@@ -456,8 +456,13 @@ _COMPLEX_PROMPT = (
 _SECRET = "sk-abcdef1234567890ABCDEF1234"  # matches the sk- redaction pattern
 
 
+# build_cursor_event UUID-validates session_id (OMN-17480): the canonical
+# emit assertions need a real UUID conversation id, not a "d-1" label.
+_CONV_ID = str(uuid.uuid4())
+
+
 def _emitted_events(
-    monkeypatch: pytest.MonkeyPatch, prompt: str, conv_id: str = "d-1"
+    monkeypatch: pytest.MonkeyPatch, prompt: str, conv_id: str = _CONV_ID
 ) -> List[Tuple[str, Dict]]:
     """Run main() capturing every send_event call as (topic, payload) tuples."""
     events: List[Tuple[str, Dict]] = []
@@ -497,7 +502,7 @@ class TestCanonicalEmit:
             "payload",
         }
         assert event["event_type"] == "UserPromptSubmit"
-        assert event["session_id"] == "d-1"
+        assert event["session_id"] == _CONV_ID
         assert event["agent_source"] == "cursor"
         assert str(uuid.UUID(event["correlation_id"]))
 

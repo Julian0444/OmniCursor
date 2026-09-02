@@ -82,6 +82,11 @@ All notable changes to OmniCursor are documented here. The format follows
   setup sections (A10.6).
 
 ### Fixed
+- `build_cursor_event` validates `session_id` the way it validates
+  `correlation_id`: a non-UUID value normalizes to `""` with one local
+  warning instead of reaching the backend's UUID `agent_actions.session_id`
+  column and degrading the handler to PARTIAL. Wire shape (six keys)
+  unchanged. (OMN-17480)
 - Redaction pattern table re-synced with the omniclaude donor (12 → 14
   patterns): secret-bearing key names with no word boundary
   (`clientSecret`-style JSON keys, OMN-16277), prose-form credential

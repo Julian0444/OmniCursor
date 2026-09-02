@@ -13,6 +13,7 @@ from __future__ import annotations
 import datetime
 import importlib
 import importlib.util as _ilu
+import logging
 import sys
 import types
 import uuid
@@ -114,6 +115,63 @@ class TestCorrelationIdValidation:
         )
 
 
+class TestSessionIdValidation:
+    """Mirror of TestCorrelationIdValidation with "" as the sink (never None:
+    session_id is a str on the wire and the registry's partition key)."""
+
+    @staticmethod
+    def _warnings(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
+        return [
+            r
+            for r in caplog.records
+            if r.name == "canonical_event" and r.levelno == logging.WARNING
+        ]
+
+    def test_valid_uuid_is_kept_byte_identical(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        sid = str(uuid.uuid4())
+        with caplog.at_level(logging.WARNING, logger="canonical_event"):
+            event = _mod.build_cursor_event("stop", sid, {})
+        assert event["session_id"] == sid
+        assert self._warnings(caplog) == []
+
+    def test_uppercase_uuid_normalizes_to_canonical(self) -> None:
+        sid = str(uuid.uuid4())
+        event = _mod.build_cursor_event("stop", sid.upper(), {})
+        assert event["session_id"] == sid
+
+    def test_short_hex_id_drops_to_empty_string(self) -> None:
+        # Same legacy uuid4().hex[:12] short id the correlation_id test uses.
+        event = _mod.build_cursor_event("stop", "abc123def456", {})
+        assert event["session_id"] == ""
+
+    def test_empty_and_none_yield_empty_string_silently(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        with caplog.at_level(logging.WARNING, logger="canonical_event"):
+            assert _mod.build_cursor_event("stop", None, {})["session_id"] == ""
+            assert _mod.build_cursor_event("stop", "", {})["session_id"] == ""
+        assert self._warnings(caplog) == []
+
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            pytest.param("abc", id="non-hex"),
+            pytest.param("abc123def456", id="12-hex-short-id"),
+            pytest.param(12345, id="int"),
+            pytest.param(object(), id="arbitrary-object"),
+        ],
+    )
+    def test_invalid_input_normalizes_with_exactly_one_warning(
+        self, bad: object, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        with caplog.at_level(logging.WARNING, logger="canonical_event"):
+            event = _mod.build_cursor_event("stop", bad, {})
+        assert event["session_id"] == ""
+        assert len(self._warnings(caplog)) == 1
+
+
 # ---------------------------------------------------------------------------
 # Round-trip through the real backend model (sibling omnibase_core checkout)
 # ---------------------------------------------------------------------------
@@ -161,9 +219,10 @@ def _load_real_cursor_model() -> Any:
 class TestRoundTripThroughRealModel:
     def test_built_event_deserializes(self) -> None:
         m = _load_real_cursor_model()
+        sid = str(uuid.uuid4())  # session_id is UUID-validated (OMN-17480)
         event = _mod.build_cursor_event(
             "beforeSubmitPrompt",
-            "conv-1",
+            sid,
             {
                 "prompt": "fix the bug",
                 "matched_agent": "debug-intelligence",
@@ -173,7 +232,7 @@ class TestRoundTripThroughRealModel:
         )
         model = m.ModelCursorHookEvent(**event)
         assert model.event_type.value == "UserPromptSubmit"
-        assert model.session_id == "conv-1"
+        assert model.session_id == sid
         assert model.agent_source == "cursor"
         assert model.timestamp_utc.tzinfo is not None
 

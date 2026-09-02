@@ -18,6 +18,7 @@ Stdlib only; never import the pydantic model here — the backend validates.
 from __future__ import annotations
 
 import datetime
+import logging
 import uuid
 
 # Cursor native hook name -> canonical event_type
@@ -61,6 +62,36 @@ def _valid_correlation_id(correlation_id: object) -> str | None:
         return None
 
 
+_LOG = logging.getLogger(__name__)
+# Library convention: hook processes configure no logging, and without a
+# handler the stdlib "lastResort" handler would print WARNINGs to the hook's
+# stderr — a side channel no hook uses today. Records still propagate to any
+# root handler (pytest's caplog, a future ~/.omnicursor log handler). The
+# guard keeps the handler single when tests load this module more than once.
+if not _LOG.handlers:
+    _LOG.addHandler(logging.NullHandler())
+
+
+def _valid_session_id(session_id: object) -> str:
+    """Return *session_id* as a canonical UUID string, or ``""``.
+
+    Mirror of ``_valid_correlation_id`` with ``""`` as the sink (never None:
+    the wire field is a ``str`` and the registry's ``partition_key_field``).
+    Backend ``agent_actions.session_id`` is a UUID column, so a non-UUID value
+    would fail the INSERT and silently degrade the handler to PARTIAL. Real
+    Cursor conversation ids are UUIDs; this guards synthesized/test events.
+    """
+    if not session_id:
+        return ""
+    try:
+        return str(uuid.UUID(str(session_id)))
+    except (ValueError, AttributeError, TypeError):
+        _LOG.warning(
+            'session_id %r is not a UUID; emitting session_id="" instead', session_id
+        )
+        return ""
+
+
 def build_cursor_event(
     native_hook: str,
     session_id: str,
@@ -75,7 +106,7 @@ def build_cursor_event(
     """
     return {
         "event_type": normalize_event_name(native_hook),
-        "session_id": str(session_id or ""),
+        "session_id": _valid_session_id(session_id),
         "correlation_id": _valid_correlation_id(correlation_id),
         "timestamp_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "agent_source": "cursor",
