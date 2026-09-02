@@ -16,6 +16,10 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0.0",
+  # scripts/ci/check_manifest.py (manifest gate) imports jsonschema: a
+  # gate/test dependency, not a runtime one. CI's plugin-gates job installs
+  # .[dev], so this is the single declaration.
+  "jsonschema>=4.0.0,<5.0.0",
 ]
 mcp = [
   "mcp>=1.26.0,<2.0.0",

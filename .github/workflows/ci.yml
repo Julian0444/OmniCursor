@@ -120,7 +120,11 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: python -m pip install pyyaml jsonschema
+        run: |
+          python -m pip install --upgrade pip
+          # .[dev] declares jsonschema (manifest gate) — one source of truth
+          # in pyproject.toml instead of an ad-hoc pip line that can drift.
+          pip install -e ".[dev]"
 
       - name: Manifest + MCP wiring gate (pinned official schema)
         run: python scripts/ci/check_manifest.py

@@ -62,6 +62,10 @@ All notable changes to OmniCursor are documented here. The format follows
   allowlist. (#12)
 
 ### Changed
+- `jsonschema` declared in the `dev` extra (the manifest gate's dependency)
+  and the `plugin-gates` CI job installs `.[dev]` instead of an ad-hoc pip
+  line, so `pip install -e ".[dev]" && pytest tests/` reproduces CI's gate
+  results locally. (OMN-17480)
 - Documentation sanitized for OSS (local-env examples, `OMN-XXXX`
   placeholders). (#2)
 - Emit transport routed through the shared platform `node_emit_daemon` over

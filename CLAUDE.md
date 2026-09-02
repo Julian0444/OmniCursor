@@ -17,7 +17,7 @@ Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Status & known dri
 ```bash
 # Setup (requires-python >=3.10 — PEP 604 unions, so 3.9 can't even collect; CI uses 3.12)
 python3.12 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]" ruff          # [dev] is pytest-only; ruff is a separate dep
+pip install -e ".[dev]" ruff          # [dev] = pytest + jsonschema (manifest gate); ruff is a separate dep
 git config core.hooksPath .githooks   # wire the shared pre-commit gate
 
 # Tests (counts drift — regenerate with: pytest tests/ --collect-only -q | tail -1)
