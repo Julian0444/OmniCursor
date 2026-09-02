@@ -397,9 +397,9 @@ All networked tiers are **opt-in**; the plugin works fully offline.
 ## 12. Packaging
 
 - **Python package:** setuptools `src/` layout, runtime deps `pydantic` + `pyyaml`,
-  extras `[dev]` (pytest) and `[mcp]`. Version `0.1.0`. Only
-  `nodes/*/contract.yaml` is bundled as package data — the `.cursor/` surfaces
-  ship via the plugin symlink, **not** via pip.
+  extras `[dev]` (pytest + jsonschema for the manifest gate) and `[mcp]`. Version
+  `0.1.0`. Only `nodes/*/contract.yaml` is bundled as package data — the `.cursor/`
+  surfaces ship via the plugin symlink, **not** via pip.
 - **Cursor plugin:** `scripts/install-plugin.sh` stages a curated runtime
   payload (`.cursor/`, `.cursor-plugin/`, `src/omnicursor/`, `config/`,
   pyproject + README/LICENSE/CHANGELOG — no `tests/`, `docker/`, `eval/`,

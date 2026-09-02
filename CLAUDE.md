@@ -17,7 +17,7 @@ Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Status & known dri
 ```bash
 # Setup (requires-python >=3.10 — PEP 604 unions, so 3.9 can't even collect; CI uses 3.12)
 python3.12 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]" ruff          # [dev] is pytest-only; ruff is a separate dep
+pip install -e ".[dev]" ruff          # [dev] = pytest + jsonschema (manifest gate); ruff is a separate dep
 git config core.hooksPath .githooks   # wire the shared pre-commit gate
 
 # Tests (counts drift — regenerate with: pytest tests/ --collect-only -q | tail -1)
@@ -42,8 +42,9 @@ stdlib-only). Emergency bypass only: `git commit --no-verify`.
 
 CI (`.github/workflows/ci.yml`) runs the same on Python 3.12 with `.[dev,mcp]`, plus
 mypy, bandit, detect-secrets (baseline compare), offline link check, MCP wiring,
-shellcheck, and a sibling-drift job that checks out `omnimarket`/`omnibase_core` at
-governed pin SHAs (the weekly scheduled run probes the moving `dev` heads instead).
+shellcheck, and a sibling-drift job that checks out
+`omnimarket`/`omnibase_core`/`omniclaude` at governed pin SHAs (the weekly scheduled
+run probes the moving `dev` heads instead).
 Triggers: PRs to `main`, pushes to `main`, `workflow_dispatch`, weekly schedule. Fork PRs
 need a maintainer's "Approve and run" (see the trigger comment in `ci.yml`). Branch
 protection should require the aggregate `ci-summary` job — as of 2026-07-26 `main` has

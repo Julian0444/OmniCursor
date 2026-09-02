@@ -62,6 +62,10 @@ All notable changes to OmniCursor are documented here. The format follows
   allowlist. (#12)
 
 ### Changed
+- `jsonschema` declared in the `dev` extra (the manifest gate's dependency)
+  and the `plugin-gates` CI job installs `.[dev]` instead of an ad-hoc pip
+  line, so `pip install -e ".[dev]" && pytest tests/` reproduces CI's gate
+  results locally. (OMN-17480)
 - Documentation sanitized for OSS (local-env examples, `OMN-XXXX`
   placeholders). (#2)
 - Emit transport routed through the shared platform `node_emit_daemon` over
@@ -78,6 +82,19 @@ All notable changes to OmniCursor are documented here. The format follows
   setup sections (A10.6).
 
 ### Fixed
+- `build_cursor_event` validates `session_id` the way it validates
+  `correlation_id`: a non-UUID value normalizes to `""` with one local
+  warning instead of reaching the backend's UUID `agent_actions.session_id`
+  column and degrading the handler to PARTIAL. Wire shape (six keys)
+  unchanged. (OMN-17480)
+- Redaction pattern table re-synced with the omniclaude donor (12 → 14
+  patterns): secret-bearing key names with no word boundary
+  (`clientSecret`-style JSON keys, OMN-16277), prose-form credential
+  mentions ("the password is <token>", OMN-15062), and a URL-credentials
+  regex bounded to the authority so multi-line text containing a URL and a
+  later `:`/`@` is no longer mass-redacted (OMN-15462). The sibling-drift CI
+  job now also checks out `omniclaude` at a governed pin and runs
+  `tests/test_redaction.py` under the skip-fails guard. (OMN-17480)
 - Phantom worktree gitlink (`.claude/worktrees/ecstatic-murdock`, a
   mode-160000 entry with no `.gitmodules` URL) removed — it broke
   `actions/checkout`'s submodule cleanup under `persist-credentials: false`,
